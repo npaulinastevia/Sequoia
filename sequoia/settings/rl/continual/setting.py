@@ -364,6 +364,7 @@ class ContinualRLSetting(RLSetting, ContinualAssumption):
             self.train_steps_per_task = (
                 self.train_steps_per_task or self.train_max_steps // self.nb_tasks
             )
+
             new_keys = np.linspace(
                 0, self.train_max_steps, self.nb_tasks + 1, endpoint=True, dtype=int
             ).tolist()

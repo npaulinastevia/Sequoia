@@ -417,6 +417,7 @@ class Method(Generic[SettingType], Parseable, ABC):
 
         method_path = results_dir / "method.yaml"
         try:
+            print('eeeeee',results_dir)
             self.save(method_path)
         except Exception as e:
             print(f"Unable to save the Method: {e}")

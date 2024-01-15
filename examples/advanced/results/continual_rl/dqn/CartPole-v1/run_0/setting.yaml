@@ -1,0 +1,127 @@
+add_done_to_observations: false
+base_env_kwargs: {}
+batch_size: null
+config:
+  data_dir: data
+  debug: false
+  device: cpu
+  log_dir: results
+  num_workers: null
+  render: false
+  seed: null
+  verbose: false
+dataset: CartPole-v1
+known_task_boundaries_at_test_time: false
+known_task_boundaries_at_train_time: false
+max_episode_steps: null
+monitor_training_performance: true
+nb_tasks: 2
+num_workers: null
+observe_state_directly: null
+prefer_tensors: false
+smooth_task_boundaries: true
+stationary_context: false
+task_labels_at_test_time: false
+task_labels_at_train_time: false
+task_noise_std: 0.2
+test_dataset: CartPole-v1
+test_max_episodes: null
+test_max_steps: 10000
+test_steps_per_task: 5000
+test_task_schedule:
+  0:
+    gravity: 10
+    length: 0.2
+  5000:
+    gravity: 100
+    length: 1.2
+  10000:
+    gravity: 10
+    length: 0.2
+test_task_schedule_path: null
+test_transforms: []
+test_wrappers:
+- !!python/object/apply:functools.partial
+  args:
+  - &id001 !!python/name:sequoia.common.gym_wrappers.smooth_environment.SmoothTransitions ''
+  state: !!python/tuple
+  - *id001
+  - !!python/tuple []
+  - add_task_dict_to_info: false
+    add_task_id_to_obs: true
+    max_steps: 10000
+    nb_tasks: null
+    new_random_task_on_reset: false
+    noise_std: 0.2
+    starting_step: 0
+    task_schedule:
+      0:
+        gravity: 10
+        length: 0.2
+      5000:
+        gravity: 100
+        length: 1.2
+      10000:
+        gravity: 10
+        length: 0.2
+  - null
+- HideTaskLabelsWrapper
+train_dataset: CartPole-v1
+train_max_episodes: null
+train_max_steps: 2000
+train_steps_per_task: 1000
+train_task_schedule:
+  0:
+    gravity: 10
+    length: 0.2
+  1000:
+    gravity: 100
+    length: 1.2
+  2000:
+    gravity: 10
+    length: 0.2
+train_task_schedule_path: null
+train_transforms: []
+train_wrappers:
+- !!python/object/apply:functools.partial
+  args:
+  - *id001
+  state: !!python/tuple
+  - *id001
+  - !!python/tuple []
+  - add_task_dict_to_info: false
+    add_task_id_to_obs: true
+    max_steps: 2000
+    nb_tasks: null
+    new_random_task_on_reset: false
+    noise_std: 0.2
+    starting_step: 0
+    task_schedule:
+      0:
+        gravity: 10
+        length: 0.2
+      1000:
+        gravity: 100
+        length: 1.2
+      2000:
+        gravity: 10
+        length: 0.2
+  - null
+- HideTaskLabelsWrapper
+transforms: []
+val_dataset: CartPole-v1
+val_fraction: 0.2
+val_task_schedule:
+  0:
+    gravity: 10
+    length: 0.2
+  1000:
+    gravity: 100
+    length: 1.2
+  2000:
+    gravity: 10
+    length: 0.2
+val_task_schedule_path: null
+val_transforms: []
+val_wrappers: []
+wandb: null

@@ -7,7 +7,8 @@ if sys.version_info >= (3, 8):
     from functools import singledispatchmethod  # type: ignore
 else:
     try:
-        pass
+        import singledispatchmethod
+        #pass
     except ImportError as e:
         print(f"Couldn't import singledispatchmethod: {e}")
         print(

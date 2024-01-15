@@ -24,10 +24,10 @@ if __name__ == "__main__":
         train_max_steps=2000,
         train_task_schedule=task_schedule,
     )
-    # Create the method to use here:
+    # Create the method to use here: DQNMethod(train_steps_per_task=1_000)
     # NOTE: The DQN method doesn't seem to work nearly as well as A2C.
-    # method = DQNMethod(train_steps_per_task=1_000)
-    method = A2CMethod(train_steps_per_task=1_000)
+    method = DQNMethod()
+    #method = A2CMethod()
     # You could change the hyper-parameters of the method too:
     # method.hparams.buffer_size = 100
 

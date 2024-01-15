@@ -16,7 +16,7 @@ extras_require: Dict[str, Union[str, List[str]]] = {
     "monsterkong": [
         "meta_monsterkong @ git+https://github.com/lebrice/MetaMonsterkong.git#egg=meta_monsterkong"
     ],
-    "atari": ["gym[atari] @ git+https://www.github.com/lebrice/gym@easier_custom_spaces#egg=gym"],
+    #"atari": ["gym[atari] @ git+https://www.github.com/lebrice/gym@easier_custom_spaces#egg=gym"],
     "hpo": ["orion>=0.1.15", "orion.algo.skopt>=0.1.6"],
     "avalanche": [
         "gdown",  # BUG: Avalanche needs this to download cub200 dataset.

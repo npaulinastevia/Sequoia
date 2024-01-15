@@ -11,6 +11,8 @@ matplotlib
 # some reason, and they really don't do a great job at evaluating them, so removing it
 # for now.
 torch==1.8.1
+#torch
+#torchvision
 torchvision==0.9.1
 scikit-learn
 tqdm
