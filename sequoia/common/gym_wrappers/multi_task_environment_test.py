@@ -2,7 +2,7 @@ from typing import Dict, List, Tuple
 
 import gym
 import matplotlib.pyplot as plt
-import pytest
+#import pytest
 from gym import spaces
 from gym.envs.classic_control import CartPoleEnv
 from gym.vector import SyncVectorEnv

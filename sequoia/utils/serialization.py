@@ -7,7 +7,7 @@ import torch
 from simple_parsing.helpers import Serializable as SerializableBase
 from simple_parsing.helpers.serialization import register_decoding_fn
 
-from sequoia.utils.generic_functions import detach
+#from sequoia.utils.generic_functions import detach
 
 from .generic_functions.detach import detach
 from .generic_functions.move import move

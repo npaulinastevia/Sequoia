@@ -9,11 +9,11 @@ from typing import Generic
 
 import gym
 
-from sequoia.utils.logging_utils import get_logger
+#from sequoia.utils.logging_utils import get_logger
 
 from .objects import ActionType, ObservationType, RewardType
 
-logger = get_logger(__name__)
+#logger = get_logger(__name__)
 
 from abc import abstractmethod
 

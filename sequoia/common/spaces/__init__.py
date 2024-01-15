@@ -1,5 +1,5 @@
 """ Custom `gym.spaces.Space` subclasses used by Sequoia. """
-from .image import Image, ImageTensorSpace
+#from .image import Image, ImageTensorSpace
 from .named_tuple import NamedTuple, NamedTupleSpace
 from .space import Space
 from .sparse import Sparse

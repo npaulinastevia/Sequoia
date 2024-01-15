@@ -2,7 +2,7 @@
 on structured objects, numpy arrays, tensors, spaces, etc.
 """
 from ._namedtuple import NamedTuple, is_namedtuple
-from .concatenate import concatenate
+#from .concatenate import concatenate
 from .detach import detach
 from .move import move
 from .replace import replace
