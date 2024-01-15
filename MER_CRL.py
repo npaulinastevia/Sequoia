@@ -104,8 +104,9 @@ class MER_CRL:
 
         #theta = torch.rand((1,), requires_grad=True)
 
-        filename = 'injected_bugs_spotted_RELINE.txt'
-
+        filename = 'bug_log_RELINE.txt'
+        f = open('bug_log_RELINE.txt', 'w')
+        f.close()
         replay_buffer = ExperienceReplayBuffer(capacity=50000)
         flag_injected_bug_spotted = [False, False]
 
@@ -127,11 +128,11 @@ class MER_CRL:
                 next_state, reward, episode_done, _ = self.env.step(action)
                 if -0.5 < next_state[0] < -0.45 and not flag_injected_bug_spotted[0]:
                     reward += 50
-                    filename.write('BUG1 ')
+
                     flag_injected_bug_spotted[0] = True
                 if 0.45 < next_state[0] < 0.5 and not flag_injected_bug_spotted[1]:
                     reward += 50
-                    filename.write('BUG1 ')
+
                     flag_injected_bug_spotted[1] = True
                 next_state = preprocess_state(next_state)
 
@@ -185,6 +186,13 @@ class MER_CRL:
                     self.theta[name] = self.theta[name] + self.gamma * (theta_w_i_j[name] - self.theta[name])
 
                 # Update target network every EQ episodes
+            f = open('bug_log_RELINE.txt', 'a+')
+            if flag_injected_bug_spotted[0]:
+                f.write('BUG1 ')
+            if flag_injected_bug_spotted[1]:
+                f.write('BUG2 ')
+            f.write('\n')
+            f.close()
             flag_injected_bug_spotted = [False, False]
             lines = [line for line in open(filename, 'r')]
             lines_1k = lines[:1000]
