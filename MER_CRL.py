@@ -1,4 +1,6 @@
 import collections
+import math
+
 import config
 import torch
 import torch.nn as nn
@@ -100,6 +102,16 @@ class MER_CRL:
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=alpha)
         self.frame_idx=0
 
+        self.task_schedule_cartpole = {
+            0: {"gravity": 9.8, "length": 0.5},
+            #0: {"gravity": 10, "length": 0.2},
+            #10: {"gravity": 100, "length": 1.2},
+            #64: {"gravity": 10, "length": 0.2},
+            #150: dict(length=0.1,gravity=9.8),
+            #200: dict(length=0.2, gravity=-12.0),
+            #250: dict(length=0.5,gravity=0.9),
+        }
+
     def deep_q_learning_test(self):
 
         #theta = torch.rand((1,), requires_grad=True)
@@ -109,7 +121,8 @@ class MER_CRL:
         f.close()
         replay_buffer = ExperienceReplayBuffer(capacity=50000)
         flag_injected_bug_spotted = [False, False]
-
+        self.env.gravity = 9.8
+        self.env.length = 0.5
         for frame in range(50):
             state = preprocess_state(self.env.reset())
             episode_done = False
@@ -122,17 +135,16 @@ class MER_CRL:
                     action = self.env.action_space.sample()
                 else:
                     with torch.no_grad():
-                        q_values = self.q_network(state.unsqueeze(0))
+                        q_values = self.q_network(torch.from_numpy(state).unsqueeze(0))
                         action = torch.argmax(q_values).item()
 
                 next_state, reward, episode_done, _ = self.env.step(action)
+                print(next_state)
                 if -0.5 < next_state[0] < -0.45 and not flag_injected_bug_spotted[0]:
                     reward += 50
-
                     flag_injected_bug_spotted[0] = True
                 if 0.45 < next_state[0] < 0.5 and not flag_injected_bug_spotted[1]:
                     reward += 50
-
                     flag_injected_bug_spotted[1] = True
                 next_state = preprocess_state(next_state)
 
@@ -144,14 +156,14 @@ class MER_CRL:
                     continue
                 # Sample from replay buffer
                 batch = replay_buffer.sample(self.steps)
-
-                # Reptile meta-update
-
+                import copy
+                before = copy.deepcopy(self.q_network.state_dict())
                 for i in range(self.steps):
                     states, actions, rewards, dones, next_states = batch
                     Q_temp = CNNQNetwork(self.state_size, self.action_size)
                     Q_temp.load_state_dict(self.q_network.state_dict())
-                    theta_a_0 = self.q_network.state_dict()
+                    weights_before = copy.deepcopy(self.q_network.state_dict())
+                    #theta_a_0 = self.q_network.state_dict()
 
                     for j in range(self.k):
 
@@ -160,31 +172,44 @@ class MER_CRL:
                         s, s_next = s.unsqueeze(0), s_next.unsqueeze(0)
                         q_values = self.q_network(s)
                         q_target_values = self.q_target_network(s_next)
-                        y = r + self.gamma * torch.max(q_target_values) if not episode_done else r
-                        loss = huber_loss(q_values[0, a], y)
+                        y = r + self.gamma * torch.max(q_target_values) if not episode_done else torch.tensor(r,requires_grad=True)
+
+                        loss = nn.SmoothL1Loss()(q_values[0, a], y)
                         self.optimizer.zero_grad()
                         loss.backward()
                         self.optimizer.step()
                         #grad_dict = {k: v.grad for k, v in zip(q_network.state_dict(), q_network.parameters())}
                         #print(grad_dict)
                         #print('eeeeeeeeeeeeeeeeeee')
-                        theta_w_i_j = self.q_network.state_dict()
+                        #theta_w_i_j = self.q_network.state_dict()
 
-                        for name in Q_temp.state_dict():
+                        #for name in Q_temp.state_dict():
 
-                            if theta_w_i_j[name].grad:
-                                theta_w_i_j[name] = theta_w_i_j[name] - self.alpha * theta_w_i_j[name].grad
-
+                        #    if theta_w_i_j[name].grad:
+                        #        theta_w_i_j[name] = theta_w_i_j[name] - self.alpha * theta_w_i_j[name].grad
+                    weights_after = self.q_network.state_dict()
+                    self.q_network.load_state_dict(
+                        {name: weights_before[name] + ((weights_after[name] - weights_before[name]) * self.beta) for
+                         name in weights_before})
                     # Reptile meta-update
-                    theta_w_i_0 = Q_temp.state_dict()
-                    for name in theta_w_i_0:
-                        theta_a_0[name] = theta_w_i_0[name] + self.beta * (theta_w_i_j[name] - theta_w_i_0[name])
+                    #theta_w_i_0 = Q_temp.state_dict()
+                    #for name in theta_w_i_0:
+                     #   theta_a_0[name] = theta_w_i_0[name] + self.beta * (theta_w_i_j[name] - theta_w_i_0[name])
 
-                    self.q_network.load_state_dict(theta_a_0)
+                    #self.q_network.load_state_dict(theta_a_0)
 
-                for name in self.q_target_network.state_dict():
-                    self.theta[name] = self.theta[name] + self.gamma * (theta_w_i_j[name] - self.theta[name])
+                #for name in self.q_target_network.state_dict():
+                #    self.theta[name] = self.theta[name] + self.gamma * (theta_w_i_j[name] - self.theta[name])
+                after = self.q_network.state_dict()
 
+                # Across batch Reptile meta-update:
+                self.q_network.load_state_dict(
+                    {name: before[name] + ((after[name] - before[name]) * self.gamma) for name in before})
+
+                # Reptile meta-update
+
+            if frame % self.EQ == 0:
+                self.q_target_network.load_state_dict(self.q_network.state_dict())
                 # Update target network every EQ episodes
             f = open('bug_log_RELINE.txt', 'a+')
             if flag_injected_bug_spotted[0]:
@@ -213,8 +238,7 @@ class MER_CRL:
             print('1 injected bug spotted in %d episodes' % count_1bug)
             print('2 injected bugs spotted in %d episodes' % count_2bug)
             print("\    /\ \n )  ( ')  meow!\n(  /  )\n \(__)|")
-            if frame % self.EQ == 0:
-                self.q_target_network.load_state_dict(self.q_network.state_dict())
+
 
 
 
@@ -225,20 +249,36 @@ class MER_CRL:
         self.theta = CNNQNetwork(self.state_size, self.action_size).state_dict()
 
         replay_buffer = ExperienceReplayBuffer(capacity=50000)
-
+        task_id=0
+        total_step=0
         for frame in range(self.frame_limit):
             state = preprocess_state(self.env.reset())
             episode_done = False
 
             while not episode_done:
+                if task_id == 0:
+                    self.env.gravity = self.task_schedule_cartpole[task_id]['gravity']
+                    self.env.length = self.task_schedule_cartpole[task_id]['length']
+                    state = self.env.reset()
+                    task_id = task_id + 1
+                else:
+                    if task_id < len(list(self.task_schedule_cartpole.keys())):
+
+                        if total_step == sorted(list(self.task_schedule_cartpole.keys()))[task_id]:
+                            self.env.gravity = self.task_schedule_cartpole[total_step]['gravity']
+                            self.env.length = self.task_schedule_cartpole[total_step]['length']
+                            state = self.env.reset()
+                            task_id = task_id + 1
                 self.frame_idx += 1
                 # Exploration-exploitation strategy
-                epsilon = max(config.EPSILON_FINAL, config.EPSILON_START - self.frame_idx / config.EPSILON_DECAY_LAST_FRAME)
+                #epsilon = max(config.EPSILON_FINAL, config.EPSILON_START - self.frame_idx / config.EPSILON_DECAY_LAST_FRAME)
+                epsilon =config.EPSILON_FINAL + (config.EPSILON_START - config.EPSILON_FINAL) * \
+                math.exp(-1. * self.frame_idx / config.EPSILON_DECAY_LAST_FRAME)
                 if random.random() <= epsilon:
                     action = self.env.action_space.sample()
                 else:
                     with torch.no_grad():
-                        q_values = self.q_network(state.unsqueeze(0))
+                        q_values = self.q_network(torch.from_numpy(state).unsqueeze(0))
                         action = torch.argmax(q_values).item()
 
                 next_state, reward, episode_done, _ = self.env.step(action)
@@ -248,18 +288,21 @@ class MER_CRL:
                 exp = Experience(state, action, reward, episode_done, next_state)
                 replay_buffer.append(exp)
                 state = next_state
+                total_step = total_step + 1
                 if len(replay_buffer) < self.steps:
                     continue
                 # Sample from replay buffer
                 batch = replay_buffer.sample(self.steps)
 
                 # Reptile meta-update
-
+                import copy
+                before = copy.deepcopy(self.q_network.state_dict())
                 for i in range(self.steps):
                     states, actions, rewards, dones, next_states = batch
                     Q_temp = CNNQNetwork(self.state_size, self.action_size)
                     Q_temp.load_state_dict(self.q_network.state_dict())
-                    theta_a_0 = self.q_network.state_dict()
+                    weights_before = copy.deepcopy(self.q_network.state_dict())
+                    #theta_a_0 = self.q_network.state_dict()
 
                     for j in range(self.k):
 
@@ -268,31 +311,40 @@ class MER_CRL:
                         s, s_next = s.unsqueeze(0), s_next.unsqueeze(0)
                         q_values = self.q_network(s)
                         q_target_values = self.q_target_network(s_next)
-                        y = r + self.gamma * torch.max(q_target_values) if not episode_done else r
-                        loss = huber_loss(q_values[0, a], y)
+                        y = r + self.gamma * torch.max(q_target_values) if not episode_done else torch.tensor(r,requires_grad=True)
+
+                        loss = nn.SmoothL1Loss()(q_values[0, a], y)
                         self.optimizer.zero_grad()
                         loss.backward()
                         self.optimizer.step()
                         #grad_dict = {k: v.grad for k, v in zip(q_network.state_dict(), q_network.parameters())}
                         #print(grad_dict)
                         #print('eeeeeeeeeeeeeeeeeee')
-                        theta_w_i_j = self.q_network.state_dict()
+                        #theta_w_i_j = self.q_network.state_dict()
 
-                        for name in Q_temp.state_dict():
+                        #for name in Q_temp.state_dict():
 
-                            if theta_w_i_j[name].grad:
-                                theta_w_i_j[name] = theta_w_i_j[name] - self.alpha * theta_w_i_j[name].grad
-
+                        #    if theta_w_i_j[name].grad:
+                        #        theta_w_i_j[name] = theta_w_i_j[name] - self.alpha * theta_w_i_j[name].grad
+                    weights_after = self.q_network.state_dict()
+                    self.q_network.load_state_dict(
+                        {name: weights_before[name] + ((weights_after[name] - weights_before[name]) * self.beta) for
+                         name in weights_before})
                     # Reptile meta-update
-                    theta_w_i_0 = Q_temp.state_dict()
-                    for name in theta_w_i_0:
-                        theta_a_0[name] = theta_w_i_0[name] + self.beta * (theta_w_i_j[name] - theta_w_i_0[name])
+                    #theta_w_i_0 = Q_temp.state_dict()
+                    #for name in theta_w_i_0:
+                     #   theta_a_0[name] = theta_w_i_0[name] + self.beta * (theta_w_i_j[name] - theta_w_i_0[name])
 
-                    self.q_network.load_state_dict(theta_a_0)
+                    #self.q_network.load_state_dict(theta_a_0)
 
-                for name in self.q_target_network.state_dict():
-                    self.theta[name] = self.theta[name] + self.gamma * (theta_w_i_j[name] - self.theta[name])
-                print('icici')
+                #for name in self.q_target_network.state_dict():
+                #    self.theta[name] = self.theta[name] + self.gamma * (theta_w_i_j[name] - self.theta[name])
+                after = self.q_network.state_dict()
+
+                # Across batch Reptile meta-update:
+                self.q_network.load_state_dict(
+                    {name: before[name] + ((after[name] - before[name]) * self.gamma) for name in before})
+
                 # Update target network every EQ episodes
             if frame % self.EQ == 0:
                 self.q_target_network.load_state_dict(self.q_network.state_dict())

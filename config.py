@@ -1,6 +1,6 @@
 import gym
 env = gym.make('CartPole-v1')
-frame_limit = 3
+frame_limit = 10
 alpha = 0.001
 beta = 0.001
 gamma = 0.99
