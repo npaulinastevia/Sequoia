@@ -2,8 +2,8 @@ import gym
 from nscartpole_v0 import NSCartPoleV0
 from nscartpole_v2 import NSCartPoleV2
 from nscartpole_v1 import NSCartPoleV1
-env = NSCartPoleV0()#gym.make('CartPole-v0')
-env_name='NSCartpolev0'
+env = NSCartPoleV2()#gym.make('CartPole-v0')
+env_name='NSCartpolev2'
 frame_limit = 100
 alpha = 1e-4
 beta = 0.001

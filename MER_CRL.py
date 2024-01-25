@@ -384,6 +384,6 @@ class MER_CRL:
 if __name__ == '__main__':
     for m in range(1):
         Meta_agent=MER_CRL(env=config.env, frame_limit=config.frame_limit,  alpha=config.alpha, beta=config.beta, gamma=config.gamma, steps=config.steps, k=config.k, EQ=config.EQ,iter=m)
-        #theta_final, replay_buffer = Meta_agent.deep_q_learning()
+        theta_final, replay_buffer = Meta_agent.deep_q_learning()
         theta_final, replay_buffer = Meta_agent.deep_q_learning_test()
 
